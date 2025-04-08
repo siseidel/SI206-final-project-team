@@ -8,23 +8,19 @@
 # 
 import json
 
-
 with open('US_States_and_Cities.json', 'r') as file:
     data = json.load(file)
 
 state_city_pairs = []
 
-
 for state, cities in data.items():
-    for city in cities:
+    selected_cities = cities[:3]
+    for city in selected_cities:
         state_city_pairs.append((state, city))
-        
         if len(state_city_pairs) == 100:
             break
     if len(state_city_pairs) == 100:
         break
 
-
 for state, city in state_city_pairs:
     print(f"State: {state}, City: {city}")
-
