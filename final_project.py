@@ -66,7 +66,6 @@ state_abbreviations = {
 }
 
 def US_state_city(jsonfile):
-    jsonfile = 'US_States_and_Cities.json'
     with open(jsonfile, 'r') as file:
         data = json.load(file)
 
@@ -85,6 +84,25 @@ def US_state_city(jsonfile):
         cityList.append((state, city))
     # print(f"{cityList}")
     return cityList
+
+def US_state_city_url(cityList):
+    base_url = "https://www.walkscore.com"
+    for state, city in cityList:
+        abbr = state_abbreviations.get(state)
+        if not abbr:
+            #If abbreviations not found
+            continue 
+        correct_city = city.replace(" ", "_")
+        print(f"{base_url}/{abbr}/{correct_city}")
+
+def main():
+    cityList = US_state_city("US_States_and_Cities.json")
+    US_state_city_url(cityList)
+
+main()
+       
+
+
 
 
 
