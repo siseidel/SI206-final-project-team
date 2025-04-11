@@ -7,7 +7,8 @@
 # 
 # 
 import json
-import requests 
+import requests
+from bs4 import BeautifulSoup
 
 # house keeping
 
@@ -86,6 +87,7 @@ def US_state_city(jsonfile):
     return cityList
 
 def US_state_city_url(cityList):
+    list_url = []
     base_url = "https://www.walkscore.com"
     for state, city in cityList:
         abbr = state_abbreviations.get(state)
@@ -93,7 +95,30 @@ def US_state_city_url(cityList):
             #If abbreviations not found
             continue 
         correct_city = city.replace(" ", "_")
-        print(f"{base_url}/{abbr}/{correct_city}")
+        new_url = f"{base_url}/{abbr}/{correct_city}"
+        list_url.append(new_url)
+    # print(list_url)
+    # for url in list_url:
+    new_url = "https://www.walkscore.com/NY/New_York"
+    page = requests.get(new_url)
+    if page.ok:
+        soup = BeautifulSoup(page.content, 'html.parser')
+        class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
+        print(class_name)
+        walk = class_name.find('img').get('alt')
+        walk_score = int(walk.split()[0])
+        transit = class_name.find_all('img')[1].get('alt')
+        transit_score = int(transit.split()[0])
+        print("\n")
+        print(walk_score, transit_score)
+
+
+            
+
+
+
+
+    
 
 def main():
     cityList = US_state_city("US_States_and_Cities.json")
