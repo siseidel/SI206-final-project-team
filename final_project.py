@@ -15,6 +15,8 @@ from bs4 import BeautifulSoup
 
 # house keeping
 
+Gov_Key = "af614668bd001dc7e26d03720691fff838c126cd"
+
 state_abbreviations = {
     "Alabama": "AL",
     "Alaska": "AK",
@@ -117,9 +119,9 @@ def US_state_city(jsonfile):
         selected_cities = cities[:3]
         for city in selected_cities:
             state_city_pairs.append((state, city))
-            if len(state_city_pairs) == 100:
+            if len(state_city_pairs) == 110:
                 break
-        if len(state_city_pairs) == 100:
+        if len(state_city_pairs) == 110:
             break
 
     cityList = []
@@ -153,6 +155,14 @@ def walk_transit(cityList):
 
         else:
             transitList.append((state, city, 200, 200))
+    return transitList
+
+def create_main_database(cur, conn):
+    cur.execute("CREATE TABLE IF NOT EXISTS Main (city TEXT PRIMARY KEY, county TEXT, walk_score INTEGER, transit_score INTEGER, median_income INTEGER)")
+    conn.commit()
+
+def enter_city_data():
+
 
 
 def main():
