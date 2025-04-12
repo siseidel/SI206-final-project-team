@@ -6,8 +6,11 @@
 #
 # 
 # 
+
 import json
 import requests
+import os
+import sqlite3
 from bs4 import BeautifulSoup
 
 # house keeping
@@ -66,6 +69,45 @@ state_abbreviations = {
     "Wyoming": "WY"
 }
 
+def set_up_database(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path + "/" + db_name)
+    cur = conn.cursor()
+    return cur, conn
+
+
+###### Median Income Collection
+
+
+def make_median_table(cur, conn):
+    cur.execute("CREATE TABLE IF NOT EXISTS Income (county TEXT PRIMARY KEY, median_income INTEGER)")
+    conn.commit()
+
+def read_csv(csv):
+    with open(csv) as file:
+        raw_data = file.readlines()
+    data = {}
+    for line in raw_data:
+        if 'Median_Household_Income_2022' in line:
+            line = line.split(',')
+            data[line[2].lstrip('"')] = int(line[-1])
+    return data
+
+def enter_income_data(cur, conn, income_data):
+    for name in income_data:
+        cur.execute("INSERT OR IGNORE INTO Income (county, median_income) VALUES (?,?)", (name, income_data[name]))
+    conn.commit()
+
+def median_income_data():
+    cur, conn = set_up_database("final_project.db")
+    make_median_table(cur, conn)
+    raw_data = read_csv('Unemployment2023.csv')
+    enter_income_data(cur, conn, raw_data)
+
+
+###### City Collection
+
+
 def US_state_city(jsonfile):
     with open(jsonfile, 'r') as file:
         data = json.load(file)
@@ -112,17 +154,20 @@ def US_state_city_url(cityList):
         print("\n")
         print(walk_score, transit_score)
 
+def gas_prices():
+    states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', ...]  # All 50 states
+    url_template = "https://gasprices.aaa.com/index.php?premiumhtml5map_get_state_info={state}&map_id=18"
 
-            
+    for state in states:
+        url = url_template.format(state=state)
+        response = requests.post(url)
+        print(state, response.text)  # Parse this with BeautifulSoup or regex
 
-
-
-
-    
 
 def main():
     cityList = US_state_city("US_States_and_Cities.json")
     US_state_city_url(cityList)
+    gas_prices()
 
 main()
        
