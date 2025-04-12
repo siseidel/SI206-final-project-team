@@ -113,7 +113,6 @@ def US_state_city(jsonfile):
         data = json.load(file)
 
     state_city_pairs = []
-
     for state, cities in data.items():
         selected_cities = cities[:3]
         for city in selected_cities:
@@ -122,52 +121,45 @@ def US_state_city(jsonfile):
                 break
         if len(state_city_pairs) == 100:
             break
+
     cityList = []
     for state, city in state_city_pairs:
         cityList.append((state, city))
     # print(f"{cityList}")
     return cityList
 
-def US_state_city_url(cityList):
-    list_url = []
+###### Walk Score and Transit Score Collection
+
+def walk_transit(cityList):
     base_url = "https://www.walkscore.com"
+    transitList = []
+
     for state, city in cityList:
         abbr = state_abbreviations.get(state)
-        if not abbr:
-            #If abbreviations not found
-            continue 
         correct_city = city.replace(" ", "_")
         new_url = f"{base_url}/{abbr}/{correct_city}"
-        list_url.append(new_url)
-    # print(list_url)
-    # for url in list_url:
-    new_url = "https://www.walkscore.com/NY/New_York"
-    page = requests.get(new_url)
-    if page.ok:
-        soup = BeautifulSoup(page.content, 'html.parser')
-        class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
-        print(class_name)
-        walk = class_name.find('img').get('alt')
-        walk_score = int(walk.split()[0])
-        transit = class_name.find_all('img')[1].get('alt')
-        transit_score = int(transit.split()[0])
-        print("\n")
-        print(walk_score, transit_score)
+        page = requests.get(new_url)
+        if page.ok:
+            soup = BeautifulSoup(page.content, 'html.parser')
+            try:
+                class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
+                walk = class_name.find('img').get('alt')
+                walk_score = int(walk.split()[0])
+                transit = class_name.find_all('img')[1].get('alt')
+                transit_score = int(transit.split()[0])
+                transitList.append((state, city, walk_score, transit_score))
+            except:
+                transitList.append((state, city, 200, 200))
 
-def gas_prices():
-    states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', ...]  # All 50 states
-    url_template = "https://gasprices.aaa.com/index.php?premiumhtml5map_get_state_info={state}&map_id=18"
-
-    for state in states:
-        url = url_template.format(state=state)
-        response = requests.post(url)
-        print(state, response.text)  # Parse this with BeautifulSoup or regex
+        else:
+            transitList.append((state, city, 200, 200))
 
 
 def main():
     cityList = US_state_city("US_States_and_Cities.json")
-    US_state_city_url(cityList)
-    gas_prices()
+    transitList = walk_transit(cityList)
+    print(transitList)
+    
 
 main()
        
