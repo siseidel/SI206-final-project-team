@@ -7,15 +7,10 @@
 # 
 # 
 
-import json
 import requests
 import os
 import sqlite3
 from bs4 import BeautifulSoup
-
-# house keeping
-
-Gov_Key = "af614668bd001dc7e26d03720691fff838c126cd"
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +19,7 @@ def set_up_database(db_name):
     return cur, conn
 
 def create_main_database(cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Main (city TEXT PRIMARY KEY, state TEXT, county TEXT, walk_score INTEGER, transit_score INTEGER, median_income INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Main (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, county TEXT, walk_score INTEGER, transit_score INTEGER, median_income INTEGER)")
     conn.commit()
 
 
@@ -68,8 +63,9 @@ def city_data(file):
         state = line[2].strip('"')
         county_name = line[5].strip('"')
         cityList.append((city_name, state, county_name))
-        if len(cityList) == 200:
+        if len(cityList) == 150:
             break
+    print(len(cityList))
     return cityList
 
 ###### Walk Score and Transit Score Collection
@@ -77,12 +73,16 @@ def city_data(file):
 def walk_transit(cityList):
     base_url = "https://www.walkscore.com"
     transitList = []
-
+    workedList = []
+    count = 0
+    print("0% done...")
     for city, state, county in cityList:
         correct_city = city.replace(" ", "_")
         new_url = f"{base_url}/{state}/{correct_city}"
         page = requests.get(new_url)
+        
         if page.ok:
+            workedList.append(city)
             soup = BeautifulSoup(page.content, 'html.parser')
             try:
                 class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
@@ -96,9 +96,14 @@ def walk_transit(cityList):
 
         else:
             transitList.append((city, state, county, 200, 200))
+            count += 1
+        if count % 15 == 0:
+            print(f"{count/1.5}% done...")
+        count += 1
     return transitList
 
 def enter_city_transit_data(cur, conn, transitList):
+    count = 0
     for city in transitList:
         state = city[1]
         city_name = city[0]
@@ -111,8 +116,11 @@ def enter_city_transit_data(cur, conn, transitList):
         except:
             print("couldn't find county for", state, city_name, county)
             continue
-        cur.execute("INSERT OR IGNORE INTO Main (city, state, county, walk_score, transit_score, median_income) VALUES (?,?,?,?,?,?)", (state, city_name, county, walk_score, transit_score, median_income))
+        print('entering', city_name, state)
+        count += 1
+        cur.execute("INSERT OR IGNORE INTO Main (city_id, city, state, county, walk_score, transit_score, median_income) VALUES (?,?,?,?,?,?,?)", (count, city_name, state, county, walk_score, transit_score, median_income))
     conn.commit()
+    print(count)
 
 def main():
     print('start')
