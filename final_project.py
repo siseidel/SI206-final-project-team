@@ -17,65 +17,15 @@ from bs4 import BeautifulSoup
 
 Gov_Key = "af614668bd001dc7e26d03720691fff838c126cd"
 
-state_abbreviations = {
-    "Alabama": "AL",
-    "Alaska": "AK",
-    "Arizona": "AZ",
-    "Arkansas": "AR",
-    "California": "CA",
-    "Colorado": "CO",
-    "Connecticut": "CT",
-    "Delaware": "DE",
-    "District of Columbia": "DC",
-    "Florida": "FL",
-    "Georgia": "GA",
-    "Hawaii": "HI",
-    "Idaho": "ID",
-    "Illinois": "IL",
-    "Indiana": "IN",
-    "Iowa": "IA",
-    "Kansas": "KS",
-    "Kentucky": "KY",
-    "Louisiana": "LA",
-    "Maine": "ME",
-    "Maryland": "MD",
-    "Massachusetts": "MA",
-    "Michigan": "MI",
-    "Minnesota": "MN",
-    "Mississippi": "MS",
-    "Missouri": "MO",
-    "Montana": "MT",
-    "Nebraska": "NE",
-    "Nevada": "NV",
-    "New Hampshire": "NH",
-    "New Jersey": "NJ",
-    "New Mexico": "NM",
-    "New York": "NY",
-    "North Carolina": "NC",
-    "North Dakota": "ND",
-    "Ohio": "OH",
-    "Oklahoma": "OK",
-    "Oregon": "OR",
-    "Pennsylvania": "PA",
-    "Rhode Island": "RI",
-    "South Carolina": "SC",
-    "South Dakota": "SD",
-    "Tennessee": "TN",
-    "Texas": "TX",
-    "Utah": "UT",
-    "Vermont": "VT",
-    "Virginia": "VA",
-    "Washington": "WA",
-    "West Virginia": "WV",
-    "Wisconsin": "WI",
-    "Wyoming": "WY"
-}
-
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path + "/" + db_name)
     cur = conn.cursor()
     return cur, conn
+
+def create_main_database(cur, conn):
+    cur.execute("CREATE TABLE IF NOT EXISTS Main (city TEXT PRIMARY KEY, state TEXT, county TEXT, walk_score INTEGER, transit_score INTEGER, median_income INTEGER)")
+    conn.commit()
 
 
 ###### Median Income Collection
@@ -100,34 +50,26 @@ def enter_income_data(cur, conn, income_data):
         cur.execute("INSERT OR IGNORE INTO Income (county, median_income) VALUES (?,?)", (name, income_data[name]))
     conn.commit()
 
-def median_income_data():
-    cur, conn = set_up_database("final_project.db")
+def median_income_data(cur, conn, file):
     make_median_table(cur, conn)
-    raw_data = read_csv('Unemployment2023.csv')
+    raw_data = read_csv(file)
     enter_income_data(cur, conn, raw_data)
 
 
 ###### City Collection
 
-
-def US_state_city(jsonfile):
-    with open(jsonfile, 'r') as file:
-        data = json.load(file)
-
-    state_city_pairs = []
-    for state, cities in data.items():
-        selected_cities = cities[:3]
-        for city in selected_cities:
-            state_city_pairs.append((state, city))
-            if len(state_city_pairs) == 110:
-                break
-        if len(state_city_pairs) == 110:
-            break
-
+def city_data(file):
+    with open(file) as file:
+        file = file.readlines()
     cityList = []
-    for state, city in state_city_pairs:
-        cityList.append((state, city))
-    # print(f"{cityList}")
+    for i in range(len(file)):
+        line = file[i].split(',')
+        city_name = line[0].strip('"')
+        state = line[2].strip('"')
+        county_name = line[5].strip('"')
+        cityList.append((city_name, state, county_name))
+        if len(cityList) == 200:
+            break
     return cityList
 
 ###### Walk Score and Transit Score Collection
@@ -136,10 +78,9 @@ def walk_transit(cityList):
     base_url = "https://www.walkscore.com"
     transitList = []
 
-    for state, city in cityList:
-        abbr = state_abbreviations.get(state)
+    for city, state, county in cityList:
         correct_city = city.replace(" ", "_")
-        new_url = f"{base_url}/{abbr}/{correct_city}"
+        new_url = f"{base_url}/{state}/{correct_city}"
         page = requests.get(new_url)
         if page.ok:
             soup = BeautifulSoup(page.content, 'html.parser')
@@ -149,26 +90,42 @@ def walk_transit(cityList):
                 walk_score = int(walk.split()[0])
                 transit = class_name.find_all('img')[1].get('alt')
                 transit_score = int(transit.split()[0])
-                transitList.append((state, city, walk_score, transit_score))
+                transitList.append((city, state, county, walk_score, transit_score))
             except:
-                transitList.append((state, city, 200, 200))
+                transitList.append((city, state, county, 200, 200))
 
         else:
-            transitList.append((state, city, 200, 200))
+            transitList.append((city, state, county, 200, 200))
     return transitList
 
-def create_main_database(cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Main (city TEXT PRIMARY KEY, county TEXT, walk_score INTEGER, transit_score INTEGER, median_income INTEGER)")
+def enter_city_transit_data(cur, conn, transitList):
+    for city in transitList:
+        state = city[1]
+        city_name = city[0]
+        walk_score = city[3]
+        transit_score = city[4]
+        county = city[2]
+        try:
+            cur.execute("SELECT median_income FROM Income WHERE county = (?)", (f"{county} County",))
+            median_income = int(cur.fetchone()[0])
+        except:
+            print("couldn't find county for", state, city_name, county)
+            continue
+        cur.execute("INSERT OR IGNORE INTO Main (city, state, county, walk_score, transit_score, median_income) VALUES (?,?,?,?,?,?)", (state, city_name, county, walk_score, transit_score, median_income))
     conn.commit()
 
-def enter_city_data():
-
-
-
 def main():
-    cityList = US_state_city("US_States_and_Cities.json")
+    print('start')
+    cur, conn = set_up_database("final_project.db")
+    print('finished 1')
+    create_main_database(cur, conn)
+    median_income_data(cur, conn,'Unemployment2023.csv')
+    cityList = city_data('uscities.csv')
+    print('finished 2')
     transitList = walk_transit(cityList)
-    print(transitList)
+    print('finished 3')
+    enter_city_transit_data(cur, conn, transitList)
+    print('finished 4')
     
 
 main()
