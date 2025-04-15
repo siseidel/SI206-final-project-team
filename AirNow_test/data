@@ -1,0 +1,42 @@
+import requests
+import json
+
+# zipcode = "07008"
+# URL = "https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode=07008&date=2025-04-15&distance=10&API_KEY=2B7FD6DF-81FB-4965-8A64-8267C2CFF58D"
+# print(URL)
+# data = requests.get(URL)
+# print(data)
+# data2 = data.json()
+# print(data2)
+
+# # URL = "https://www.airnowapi.org/aq/forecast/zipCode/?format=text/csv&zipCode=07646&date=2025-04-15&distance=10&API_KEY=2B7FD6DF-81FB-4965-8A64-8267C2CFF58D"
+# # data = requests.get(URL)
+
+def get_income_by_zip(zip_code, api_key):
+    # Census ZCTA codes use 5-digit format
+    url = "https://api.census.gov/data/2021/acs/acs5"
+
+    params = {
+        "get": "B19013_001E",  # Median household income
+        "for": f"zip code tabulation area:{zip_code}",
+        "key": api_key
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        # First row is the column headers
+        headers = data[0]
+        values = data[1]
+        income = values[0]
+        return f"Median household income for ZIP code {zip_code}: ${income}"
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+
+# Example usage
+zip_code = "07008"  # Ann Arbor
+api_key = "af614668bd001dc7e26d03720691fff838c126cd"  
+
+result = get_income_by_zip(zip_code, api_key)
+print(result)
