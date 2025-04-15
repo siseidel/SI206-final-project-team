@@ -74,6 +74,7 @@ def create_states_table(cur, conn):
 
     conn.commit()
 
+
 if __name__ == "__main__":
     cur, conn = set_up_database("states.db")
     create_states_table(cur, conn)
