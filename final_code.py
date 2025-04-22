@@ -8,7 +8,7 @@ import requests
 import os
 import sqlite3
 from bs4 import BeautifulSoup
-import json
+import matplotlib.pyplot as plt
 
 income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
 air_api_key = '2B7FD6DF-81FB-4965-8A64-8267C2CFF58D'
@@ -206,34 +206,92 @@ def insert_25(cur, con, cityList):
     con.commit()
 
 def make_data():
-    usedCities = []
-    print(len(usedCities))
+    # usedCities = []
+    # print(len(usedCities))
     cur, conn = set_up_database('final_project.db')
-    create_main_database(cur, conn)
-    create_state_id(cur, conn)
-    for i in range(4):
-        cityList = city_data('uscities.csv', usedCities)
-        usedCities.extend(cityList)
-        insert_25(cur, conn, cityList)
-        print('finish round', i+1)
+    # create_main_database(cur, conn)
+    # create_state_id(cur, conn)
+    # for i in range(4):
+    #     cityList = city_data('uscities.csv', usedCities)
+    #     usedCities.extend(cityList)
+    #     insert_25(cur, conn, cityList)
+    #     print('finish round', i+1)
     return cur, conn
 
 def calculationA(cur, con):
     airList = list(cur.execute("SELECT * FROM AQ"))
-    print(airList)
-    AQ_average = sum(airList[1])/len(airList)
+    total = 0
+    for zip in airList:
+        total += int(zip[1])
+    AQ_average = total/len(airList)
+    print(total)
     print(AQ_average)
 
-    sorted_data = sorted(airList, key=lambda x: x[1], reverse=True)
-    lowest = sorted_data[:9]
-    sorted_data = sorted(airList, key=lambda x: x[1], reverse=False)
-    highest = sorted_data[:9]
+    cur.execute("SELECT Main.city, AQ.air_quality FROM Main JOIN AQ ON Main.zip_code = AQ.zip_code")
+    city_AQ = cur.fetchall()
+
+    sorted_data = sorted(city_AQ, key=lambda x: x[1], reverse=True)
+    lowest = sorted_data[:4]
+    sorted_data = sorted(city_AQ, key=lambda x: x[1], reverse=False)
+    highest = sorted_data[:4]
+
+    city_names = list()
+    city_data = list()
+    for i in range(len(lowest)):
+        city_names.append(lowest[i][0])
+        city_data.append(lowest[i][1])
+        city_data.append(highest[i][1])
+        city_names.append(highest[i][0])
+    print(city_names, city_data)
+    con.commit()
+
+    plt.figure(figsize=(8, 6))
+    bars = plt.bar(city_names, city_data, color='skyblue')
+
+    # Add average line
+    plt.axhline(AQ_average, color='red', linestyle='--', label=f'Average = {AQ_average:.1f}')
+
+    # Labels and title
+    plt.xlabel('City')
+    plt.ylabel('Air Quality Index')
+    plt.title('Air Quality by City')
+    plt.legend()
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+
+
+def calculationB(cur, con):
+
+    cur.execute("SELECT Main.city, Main.state_id FROM Income JOIN Walk_Score ON Income.zip_code = Walk.zip_code")
+    city_AQ = cur.fetchall()
+
+    median_income = list()
+    walk_scores = list()
+    cities = list()
+    plt.figure(figsize=(8, 6))
+    plt.scatter(median_income, walk_scores, color='blue')
+
+    # Labels and title
+    plt.xlabel('Median Income ($)')
+    plt.ylabel('Walk Score')
+    plt.title('Median Income vs Walk Score by City')
+
+    # Optionally, label each point with the city name
+    for i, city in enumerate(cities):
+        plt.text(median_income[i], walk_scores[i], city, fontsize=9, ha='right')
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
 
 
 
 def use_data(cur, con):
     calculationA(cur, con)
-    # calculationB()
+    calculationB()
     # calculationC()
     pass
 
