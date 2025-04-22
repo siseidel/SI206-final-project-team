@@ -20,7 +20,11 @@ def set_up_database(db_name):
     return cur, conn
 
 def create_main_database(cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Main (city_id INTEGER PRIMARY KEY, city TEXT, state_id TEXT, zip_code INTEGER, walk_score INTEGER, median_income INTEGER, air_quality INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Main (city_id INTEGER PRIMARY KEY, city TEXT, state_id TEXT, zip_code INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Income (zip_code INTEGER PRIMARY KEY, median_income INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS AQ (zip_code INTEGER PRIMARY KEY, air_quality INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Walk_Score (city_id INTEGER PRIMARY KEY, walk_score INTEGER)")
+    
     conn.commit()
 
 def create_state_id(cur, conn):
@@ -108,6 +112,8 @@ def city_data(file, usedList):
     print(len(cityList))
     return cityList
 
+###### Walk Score Collection
+
 def walk_transit(city, state):
     base_url = "https://www.walkscore.com"
 
@@ -128,6 +134,8 @@ def walk_transit(city, state):
     else:
         return None
     
+###### Median Income Collection
+
 def get_income_by_zip(zip_code, income_api_key):    
     url = "https://api.census.gov/data/2021/acs/acs5"
 
@@ -144,13 +152,14 @@ def get_income_by_zip(zip_code, income_api_key):
         values = data[1]
         income = int(values[0])
         if income == -666666666:
-            # incomeList.append((city, state, zip_code, walk_score, 0))
             return None
         else:
             return income
     else:
         return None
     
+###### Air Quality Collection
+
 def air_quality(zip_code, air_api_key):
 
     url = f"https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode={zip_code}&date=2025-04-15&distance=10&API_KEY={air_api_key}"
@@ -182,8 +191,13 @@ def insert_25(cur, con, cityList):
                     i += 1
                     cur.execute("SELECT state_id FROM States WHERE abbreviation = (?)", (state,))
                     state_id = int(cur.fetchone()[0])
-                    cur.execute("INSERT OR IGNORE INTO Main (city_id, city, state_id, zip_code, walk_score, median_income, air_quality) VALUES (?,?,?,?,?,?,?)", (city_id, city, state_id, zip_code, walk_score, income, air))
-                    print('finished', i)
+
+                    cur.execute("INSERT OR IGNORE INTO Main (city_id, city, state_id, zip_code) VALUES (?,?,?,?)", (city_id, city, state_id, zip_code))
+                    cur.execute("INSERT OR IGNORE INTO Income (zip_code, median_income) VALUES (?,?)", (zip_code, income))
+                    cur.execute("INSERT OR IGNORE INTO AQ (zip_code, air_quality) VALUES (?,?)", (zip_code,air))
+                    cur.execute("INSERT OR IGNORE INTO Walk_Score (city_id, walk_score) VALUES (?,?)", (city_id, walk_score))
+                    
+                    print('finished', i+1)
                     if cur.rowcount == 1:
                         new_inserts += 1
                     if new_inserts >= 25:
