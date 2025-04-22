@@ -1,17 +1,59 @@
 import requests
 import json
 
-air_api_key = '2B7FD6DF-81FB-4965-8A64-8267C2CFF58D'
-zip_code = str(38120)
+def city_data(file):
+    with open(file) as file:
+        file = file.readlines()
+    cityList = []
+    for i in range(len(file)):
+        line = file[i].split(',')
+        city_name = line[0].strip('"')
+        state = line[2].strip('"')
+        zip_code = line[15].strip('"')
+        zip_code = zip_code.split()[0]
+        cityList.append((city_name, state, zip_code))
+        if len(cityList) == 150:
+            break
+    print(cityList)
+    print(len(cityList))
+    return cityList
 
-url = f"https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode={zip_code}&date=2025-04-15&distance=10&API_KEY={air_api_key}"
+air_api_key = '02BAEBFB-182C-4DA5-AA70-3CF3DAA392EA'
 
-print("0% done...")
-count = 0
-airList = []
-data = requests.get(url)
-data = data.json()
-print(data)
+def air_quality(cityList, air_api_key):
+
+    print("0% done...")
+    count = 0
+    worked = 0
+    airList = []
+    for city, state, zip_code in cityList:
+        url = f"https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode={zip_code}&date=2025-04-15&distance=10&API_KEY={air_api_key}"
+        data = requests.get(url)
+        if data.status_code == 200:
+            data = data.json()
+            if data == []:
+                airList.append((-100))
+            else:
+                air_quality = data[0]['AQI']
+                airList.append((air_quality))
+                worked += 1
+
+        else:
+            airList.append((-1000))
+        
+        if count % 15 == 0:
+            print(f"{count/1.5}% done...")
+        count += 1
+        
+    print(worked)
+    print(airList)
+    print(len(airList))
+
+    return airList
+    
+cityList = city_data('uscities.csv')
+airList = air_quality(cityList, air_api_key)
+
 
 def get_income_by_zip(zip_code, api_key):
     # Census ZCTA codes use 5-digit format

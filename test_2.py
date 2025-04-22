@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 import json
 
 income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
-air_api_key = '2B7FD6DF-81FB-4965-8A64-8267C2CFF58D'
+air_api_key = '02BAEBFB-182C-4DA5-AA70-3CF3DAA392EA'
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -102,7 +102,7 @@ def city_data(file):
         zip_code = line[15].strip('"')
         zip_code = zip_code.split()[0]
         cityList.append((city_name, state, zip_code))
-        if len(cityList) == 150:
+        if len(cityList) == 300:
             break
     print(cityList)
     print(len(cityList))
@@ -113,8 +113,8 @@ def city_data(file):
 def walk_transit(cityList):
     base_url = "https://www.walkscore.com"
     transitList = []
-    workedList = []
     count = 0
+    print(len(cityList))
     print("0% done...")
     for city, state, zip_code in cityList:
         correct_city = city.replace(" ", "_")
@@ -122,7 +122,6 @@ def walk_transit(cityList):
         page = requests.get(new_url)
         
         if page.ok:
-            workedList.append(city)
             soup = BeautifulSoup(page.content, 'html.parser')
             try:
                 class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
@@ -130,11 +129,12 @@ def walk_transit(cityList):
                 walk_score = int(walk.split()[0])
                 transitList.append((city, state, zip_code, walk_score))
             except:
-                transitList.append((city, state, zip_code, 200))
+                # transitList.append((city, state, zip_code, 200))
+                continue
 
         else:
-            transitList.append((city, state, zip_code, 200))
-            count += 1
+            # transitList.append((city, state, zip_code, 200))
+            continue
         if count % 15 == 0:
             print(f"{count/1.5}% done...")
         count += 1
@@ -146,8 +146,10 @@ def walk_transit(cityList):
 
 def get_income_by_zip(cityList, income_api_key):
     # Census ZCTA codes use 5-digit format
+    
     url = "https://api.census.gov/data/2021/acs/acs5"
 
+    print(len(cityList))
     print("0% done...")
     count = 0
     incomeList = []
@@ -167,11 +169,13 @@ def get_income_by_zip(cityList, income_api_key):
             values = data[1]
             income = int(values[0])
             if income == -666666666:
-                incomeList.append((city, state, zip_code, walk_score, 0))
+                # incomeList.append((city, state, zip_code, walk_score, 0))
+                continue
             else:
                 incomeList.append((city, state, zip_code, walk_score, income))
         else:
-            incomeList.append((city, state, zip_code, walk_score, 0))
+            # incomeList.append((city, state, zip_code, walk_score, 0))
+            continue
         
         if count % 15 == 0:
             print(f"{count/1.5}% done...")
@@ -188,24 +192,31 @@ def air_quality(cityList, air_api_key):
     print("0% done...")
     count = 0
     airList = []
-    for city, state, zip_code, walk_score, income in cityList[:1]:
+    print(len(cityList))
+    for city, state, zip_code, walk_score, income in cityList:
         url = f"https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode={zip_code}&date=2025-04-15&distance=10&API_KEY={air_api_key}"
-
         data = requests.get(url)
         if data.status_code == 200:
             data = data.json()
-            air_quality = data[0]['AQI']
-            print(air_quality)
-            airList.append((city, state, zip_code, walk_score, income, air_quality))
-            print(air_quality)
-        else:
-            airList.append((city, state, zip_code, walk_score, income, -100))
-        
-        print(airList)
-        print(len(airList))
+            if data == []:
+                # airList.append((city, state, zip_code, walk_score, income, -1000))
+                continue
+            else:
+                air_quality = data[0]['AQI']
+                airList.append((city, state, zip_code, walk_score, income, air_quality))
 
-        return airList
-    
+        else:
+            # airList.append((city, state, zip_code, walk_score, income, -1000))
+            continue
+        
+        if count % 15 == 0:
+            print(f"{count/1.5}% done...")
+        count += 1
+        
+    print(airList)
+    print(len(airList))
+    return airList
+
 ###### Main
 
 def main():
