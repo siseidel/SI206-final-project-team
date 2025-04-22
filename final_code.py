@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 import json
 
 income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
-air_api_key = '02BAEBFB-182C-4DA5-AA70-3CF3DAA392EA'
+air_api_key = '2B7FD6DF-81FB-4965-8A64-8267C2CFF58D'
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -182,6 +182,7 @@ def insert_25(cur, con, cityList):
     new_inserts = 0
     for city, state, zip_code in cityList:
         city_id = i
+        print(city_id)
         walk_score = walk_transit(city, state)
         if walk_score is not None:
             income = get_income_by_zip(zip_code, income_api_key)
@@ -207,6 +208,7 @@ def insert_25(cur, con, cityList):
 
 def main():
     usedCities = []
+    print(len(usedCities))
     cur, conn = set_up_database('final_project.db')
     create_main_database(cur, conn)
     create_state_id(cur, conn)
@@ -214,7 +216,7 @@ def main():
         cityList = city_data('uscities.csv', usedCities)
         usedCities.extend(cityList)
         insert_25(cur, conn, cityList)
-        print('finish round', i)
+        print('finish round', i+1)
 
 main()
 
