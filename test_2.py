@@ -102,7 +102,7 @@ def city_data(file):
         zip_code = line[15].strip('"')
         zip_code = zip_code.split()[0]
         cityList.append((city_name, state, zip_code))
-        if len(cityList) == 300:
+        if len(cityList) == 200:
             break
     print(cityList)
     print(len(cityList))
@@ -136,7 +136,7 @@ def walk_transit(cityList):
             # transitList.append((city, state, zip_code, 200))
             continue
         if count % 15 == 0:
-            print(f"{count/1.5}% done...")
+            print(f"{count/2}% done...")
         count += 1
     # print(transitList[:50])
     print(len(transitList))
@@ -178,7 +178,7 @@ def get_income_by_zip(cityList, income_api_key):
             continue
         
         if count % 15 == 0:
-            print(f"{count/1.5}% done...")
+            print(f"{count/2}% done...")
         count += 1
     
     print(incomeList[:50])
@@ -210,7 +210,7 @@ def air_quality(cityList, air_api_key):
             continue
         
         if count % 15 == 0:
-            print(f"{count/1.5}% done...")
+            print(f"{count/2}% done...")
         count += 1
         
     print(airList)
