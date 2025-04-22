@@ -1,11 +1,25 @@
 import requests
 import json
 
+new_inserts = 0
+for item in api_data:
+    cur.execute("INSERT OR IGNORE INTO items (id, name, value) VALUES (?, ?, ?)", (item))
+
+    if cur.rowcount == 1:
+        new_inserts += 1
+    if new_inserts >= 25:
+        break
+
+
+
+
 def city_data(file):
     with open(file) as file:
         file = file.readlines()
     cityList = []
     for i in range(len(file)):
+        if i == 0:
+            continue
         line = file[i].split(',')
         city_name = line[0].strip('"')
         state = line[2].strip('"')
