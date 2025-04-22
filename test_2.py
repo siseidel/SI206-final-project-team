@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import json
 
 income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
+air_api_key = '2B7FD6DF-81FB-4965-8A64-8267C2CFF58D'
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -19,7 +20,7 @@ def set_up_database(db_name):
     return cur, conn
 
 def create_main_database(cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Main (city_id INTEGER PRIMARY KEY, city TEXT, state_id TEXT, county_id INTEGER, zip_code INTEGER, walk_score INTEGER, median_income INTEGER, air_quality INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Main (city_id INTEGER PRIMARY KEY, city TEXT, state_id TEXT, zip_code INTEGER, walk_score INTEGER, median_income INTEGER, air_quality INTEGER)")
     conn.commit()
 
 def create_state_id(cur, conn):
@@ -98,10 +99,9 @@ def city_data(file):
         line = file[i].split(',')
         city_name = line[0].strip('"')
         state = line[2].strip('"')
-        county_name = line[5].strip('"')
         zip_code = line[15].strip('"')
         zip_code = zip_code.split()[0]
-        cityList.append((city_name, state, county_name, zip_code))
+        cityList.append((city_name, state, zip_code))
         if len(cityList) == 150:
             break
     print(cityList)
@@ -116,7 +116,7 @@ def walk_transit(cityList):
     workedList = []
     count = 0
     print("0% done...")
-    for city, state, county, zip_code in cityList:
+    for city, state, zip_code in cityList:
         correct_city = city.replace(" ", "_")
         new_url = f"{base_url}/{state}/{correct_city}"
         page = requests.get(new_url)
@@ -128,17 +128,17 @@ def walk_transit(cityList):
                 class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
                 walk = class_name.find('img').get('alt')
                 walk_score = int(walk.split()[0])
-                transitList.append((city, state, county, zip_code, walk_score))
+                transitList.append((city, state, zip_code, walk_score))
             except:
-                transitList.append((city, state, county, zip_code, 200))
+                transitList.append((city, state, zip_code, 200))
 
         else:
-            transitList.append((city, state, county, zip_code, 200))
+            transitList.append((city, state, zip_code, 200))
             count += 1
         if count % 15 == 0:
             print(f"{count/1.5}% done...")
         count += 1
-    print(transitList[:50])
+    # print(transitList[:50])
     print(len(transitList))
     return transitList
 
@@ -148,8 +148,10 @@ def get_income_by_zip(cityList, income_api_key):
     # Census ZCTA codes use 5-digit format
     url = "https://api.census.gov/data/2021/acs/acs5"
 
-    for city in cityList:
-        zip_code = city[3]
+    print("0% done...")
+    count = 0
+    incomeList = []
+    for city, state, zip_code, walk_score in cityList:
         params = {
             "get": "B19013_001E",  # Median household income
             "for": f"zip code tabulation area:{zip_code}",
@@ -163,14 +165,47 @@ def get_income_by_zip(cityList, income_api_key):
             # First row is the column headers
             headers = data[0]
             values = data[1]
-            income = values[0]
-            return f"Median household income for ZIP code {zip_code}: ${income}"
+            income = int(values[0])
+            if income == -666666666:
+                incomeList.append((city, state, zip_code, walk_score, 0))
+            else:
+                incomeList.append((city, state, zip_code, walk_score, income))
         else:
-            return f"Error: {response.status_code} - {response.text}"
-
+            incomeList.append((city, state, zip_code, walk_score, 0))
+        
+        if count % 15 == 0:
+            print(f"{count/1.5}% done...")
+        count += 1
+    
+    print(incomeList[:50])
+    print(len((incomeList)))
+    return incomeList
 
 ###### Air Quality Collection
 
+def air_quality(cityList, air_api_key):
+
+    print("0% done...")
+    count = 0
+    airList = []
+    for city, state, zip_code, walk_score, income in cityList[:1]:
+        url = f"https://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode={zip_code}&date=2025-04-15&distance=10&API_KEY={air_api_key}"
+
+        data = requests.get(url)
+        if data.status_code == 200:
+            data = data.json()
+            air_quality = data[0]['AQI']
+            print(air_quality)
+            airList.append((city, state, zip_code, walk_score, income, air_quality))
+            print(air_quality)
+        else:
+            airList.append((city, state, zip_code, walk_score, income, -100))
+        
+        print(airList)
+        print(len(airList))
+
+        return airList
+    
 ###### Main
 
 def main():
@@ -179,6 +214,11 @@ def main():
     create_main_database(cur, conn)
     cityList = city_data('uscities.csv')
     print('finish city collection...')
-    walk_transit(cityList)
+    transitList = walk_transit(cityList)
+    print('finish walk score collection...')
+    incomeList = get_income_by_zip(transitList, income_api_key)
+    print('finished income collection...')
+    airList = air_quality(incomeList, air_api_key)
+    print('finished air quality collection')
 
 main()
