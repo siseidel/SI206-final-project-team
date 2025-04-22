@@ -9,7 +9,8 @@ import os
 import sqlite3
 from bs4 import BeautifulSoup
 import json
-import time
+
+income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
 
 def set_up_database(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -137,10 +138,36 @@ def walk_transit(cityList):
         if count % 15 == 0:
             print(f"{count/1.5}% done...")
         count += 1
+    print(transitList[:50])
     print(len(transitList))
     return transitList
 
 ###### Median Income Collection
+
+def get_income_by_zip(cityList, income_api_key):
+    # Census ZCTA codes use 5-digit format
+    url = "https://api.census.gov/data/2021/acs/acs5"
+
+    for city in cityList:
+        zip_code = city[3]
+        params = {
+            "get": "B19013_001E",  # Median household income
+            "for": f"zip code tabulation area:{zip_code}",
+            "key": income_api_key
+        }
+
+        response = requests.get(url, params=params)
+
+        if response.status_code == 200:
+            data = response.json()
+            # First row is the column headers
+            headers = data[0]
+            values = data[1]
+            income = values[0]
+            return f"Median household income for ZIP code {zip_code}: ${income}"
+        else:
+            return f"Error: {response.status_code} - {response.text}"
+
 
 ###### Air Quality Collection
 
