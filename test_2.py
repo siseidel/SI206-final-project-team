@@ -89,7 +89,56 @@ def create_state_id(cur, conn):
 
 ###### City Collection
 
+def city_data(file):
+    with open(file) as file:
+        file = file.readlines()
+    cityList = []
+    for i in range(len(file)):
+        line = file[i].split(',')
+        city_name = line[0].strip('"')
+        state = line[2].strip('"')
+        county_name = line[5].strip('"')
+        zip_code = line[15].strip('"')
+        zip_code = zip_code.split()[0]
+        cityList.append((city_name, state, county_name, zip_code))
+        if len(cityList) == 150:
+            break
+    print(cityList)
+    print(len(cityList))
+    return cityList
+
 ###### Walk Score Collection
+
+def walk_transit(cityList):
+    base_url = "https://www.walkscore.com"
+    transitList = []
+    workedList = []
+    count = 0
+    print("0% done...")
+    for city, state, county, zip_code in cityList:
+        correct_city = city.replace(" ", "_")
+        new_url = f"{base_url}/{state}/{correct_city}"
+        page = requests.get(new_url)
+        
+        if page.ok:
+            workedList.append(city)
+            soup = BeautifulSoup(page.content, 'html.parser')
+            try:
+                class_name = soup.find("div", style="padding: 0; margin: 0; border: 0; outline: 0; position: absolute; top: 0; bottom: 0; left: 0; right: 0;" )
+                walk = class_name.find('img').get('alt')
+                walk_score = int(walk.split()[0])
+                transitList.append((city, state, county, zip_code, walk_score))
+            except:
+                transitList.append((city, state, county, zip_code, 200))
+
+        else:
+            transitList.append((city, state, county, zip_code, 200))
+            count += 1
+        if count % 15 == 0:
+            print(f"{count/1.5}% done...")
+        count += 1
+    print(len(transitList))
+    return transitList
 
 ###### Median Income Collection
 
@@ -101,5 +150,8 @@ def main():
     print('start')
     cur, conn = set_up_database("final_project.db")
     create_main_database(cur, conn)
+    cityList = city_data('uscities.csv')
+    print('finish city collection...')
+    walk_transit(cityList)
 
 main()
