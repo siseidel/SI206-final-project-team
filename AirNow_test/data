@@ -27,12 +27,13 @@ def get_income_by_zip(zip_code, api_key):
         headers = data[0]
         values = data[1]
         income = values[0]
+        print(values)
         return f"Median household income for ZIP code {zip_code}: ${income}"
     else:
         return f"Error: {response.status_code} - {response.text}"
 
 # Example usage
-zip_code = "07008"  # Ann Arbor
+zip_code = "38120"  # Ann Arbor
 api_key = "af614668bd001dc7e26d03720691fff838c126cd"  
 
 result = get_income_by_zip(zip_code, api_key)
