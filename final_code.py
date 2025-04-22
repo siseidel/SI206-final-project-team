@@ -225,7 +225,9 @@ def calculationA(cur, con):
     print(AQ_average)
 
     sorted_data = sorted(airList, key=lambda x: x[1], reverse=True)
-
+    lowest = sorted_data[:9]
+    sorted_data = sorted(airList, key=lambda x: x[1], reverse=False)
+    highest = sorted_data[:9]
 
 
 
