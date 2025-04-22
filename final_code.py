@@ -108,8 +108,7 @@ def city_data(file, usedList):
         cityList.append((city_name, state, zip_code))
         if len(cityList) == 100:
             break
-    print(cityList)
-    print(len(cityList))
+    print('grabing', len(cityList), 'cities...')
     return cityList
 
 ###### Walk Score Collection
@@ -170,6 +169,8 @@ def air_quality(zip_code, air_api_key):
             return None
         else:
             air_quality = data[0]['AQI']
+            if air_quality == -1:
+                return None
             return air_quality
 
     else:
@@ -177,12 +178,10 @@ def air_quality(zip_code, air_api_key):
     
 def insert_25(cur, con, cityList):
     previousCities = list(cur.execute("SELECT * FROM Main"))
-    print(previousCities)
     i = len(previousCities)
     new_inserts = 0
     for city, state, zip_code in cityList:
         city_id = i
-        print(city_id)
         walk_score = walk_transit(city, state)
         if walk_score is not None:
             income = get_income_by_zip(zip_code, income_api_key)
@@ -206,7 +205,7 @@ def insert_25(cur, con, cityList):
     
     con.commit()
 
-def main():
+def make_data():
     usedCities = []
     print(len(usedCities))
     cur, conn = set_up_database('final_project.db')
@@ -217,6 +216,29 @@ def main():
         usedCities.extend(cityList)
         insert_25(cur, conn, cityList)
         print('finish round', i+1)
+    return cur, conn
+
+def calculationA(cur, con):
+    airList = list(cur.execute("SELECT * FROM AQ"))
+    print(airList)
+    AQ_average = sum(airList[1])/len(airList)
+    print(AQ_average)
+
+    sorted_data = sorted(airList, key=lambda x: x[1], reverse=True)
+
+
+
+
+def use_data(cur, con):
+    calculationA(cur, con)
+    # calculationB()
+    # calculationC()
+    pass
+
+
+def main():
+    cur, con = make_data()
+    use_data(cur, con)
 
 main()
 
