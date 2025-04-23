@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 # Next we defined the api code we will need to gather our data
 income_api_key = "af614668bd001dc7e26d03720691fff838c126cd" 
 air_api_key = '02BAEBFB-182C-4DA5-AA70-3CF3DAA392EA'
+# Switch with this key if the one above does not work: #2B7FD6DF-81FB-4965-8A64-8267C2CFF58D
+
 
 # We set up a SQL database called final_project to house all of our data
 def set_up_database(db_name):
@@ -231,6 +233,9 @@ def insert_25(cur, con, cityList):
                     cur.execute("INSERT OR IGNORE INTO AQ (zip_code, air_quality) VALUES (?,?)", (zip_code,air))
                     cur.execute("INSERT OR IGNORE INTO Walk_Score (city_id, walk_score) VALUES (?,?)", (city_id, walk_score))
                     
+                    print(len(list(cur.execute("SELECT * FROM Main"))))
+                    # gives an update on how many cities are in database
+                    print('finished', i)
                     # counts to 25 and stops the function when 25 cities are added the the database
                     if cur.rowcount == 1:
                         new_inserts += 1
@@ -245,7 +250,7 @@ def make_data():
     usedCities = []
 
     # makes databases
-    cur, conn = set_up_database('final_project.db')
+    cur, conn = set_up_database('final_project_new.db')
     create_main_database(cur, conn)
     create_state_id(cur, conn)
 
