@@ -148,24 +148,11 @@ def calculationC(cur, con):
 
     # creates pie chart labels
     labels = ['$75,000+', '$50,000-$75,000', '$25,000-$50,000', '$0-$25,000']
-    group_1 = 0
-    group_2 = 0
-    group_3 = 0
-    group_4 = 0
-
     # finds the median income of each of the cities with air quality score of Good and sorts them into groups
-    for zip in results:
-        cur.execute("SELECT median_income FROM Income WHERE zip_code = (?)", zip)
-        income = cur.fetchone()[0]
-        if income >= 75000:
-            group_1 += 1
-        elif income >= 50000:
-            group_2 += 1
-        elif income >= 25000:
-            group_3 += 1
-        else:
-            group_4 += 1
-    
+    group_1 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 75000')
+    group_2 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 50000 AND median_income < 75000')
+    group_3 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 25000 AND median_income < 50000')
+    group_4 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 0 AND median_income < 25000')
 
     sizes = [group_1, group_2, group_3, group_4]
 
