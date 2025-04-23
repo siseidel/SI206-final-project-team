@@ -247,7 +247,7 @@ def main():
     usedCities = []
 
     # makes databases
-    cur, conn = set_up_database('final_project.db')
+    cur, conn = set_up_database('test_final_project.db')
     create_main_database(cur, conn)
     create_state_id(cur, conn)
 

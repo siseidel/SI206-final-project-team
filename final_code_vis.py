@@ -69,7 +69,7 @@ def calculationA(cur, con):
     output += "\nThe 4 cities with the highest air quality rating were:\n"
     for city in highest:
         output += f"{city[0]} with score of {city[1]}\n"
-    output += f"\nWith the average air quality score being {AQ_average}, air quality in the American cities we looked at were generally Okay to Poor.\n"
+    output += f"\nWith the average air quality score being {AQ_average}, air quality in the American cities we looked at were generally Good and Okay.\n"
     output += "------------------------------------------------------------------------\n"
 
     return output
@@ -145,16 +145,21 @@ def calculationC(cur, con):
     # collects all cities with Good air quality
     cur.execute("SELECT zip_code FROM AQ WHERE air_quality <= 50")
     results = cur.fetchall()
+    zip_codes = tuple(zip[0] for zip in results)
 
     # creates pie chart labels
     labels = ['$75,000+', '$50,000-$75,000', '$25,000-$50,000', '$0-$25,000']
     # finds the median income of each of the cities with air quality score of Good and sorts them into groups
-    group_1 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 75000')
-    group_2 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 50000 AND median_income < 75000')
-    group_3 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 25000 AND median_income < 50000')
-    group_4 = cur.execute('SELECT COUNT(*) FROM Income WHERE median_income >= 0 AND median_income < 25000')
-
+    cur.execute(f'SELECT COUNT(*) FROM Income WHERE median_income >= 75000 AND zip_code IN {zip_codes}')
+    group_1 = cur.fetchone()[0]
+    cur.execute(f'SELECT COUNT(*) FROM Income WHERE median_income >= 50000 AND median_income < 75000 AND zip_code IN {zip_codes}')
+    group_2 = cur.fetchone()[0] 
+    cur.execute(f'SELECT COUNT(*) FROM Income WHERE median_income >= 25000 AND median_income < 50000 AND zip_code IN {zip_codes}')
+    group_3 = cur.fetchone()[0]
+    cur.execute(f'SELECT COUNT(*) FROM Income WHERE median_income >= 0 AND median_income < 25000 AND zip_code IN {zip_codes}')
+    group_4 = cur.fetchone()[0]
     sizes = [group_1, group_2, group_3, group_4]
+    print(sizes)
 
     colors = ['lightblue', 'lightgreen', 'lightcoral', 'red']
 
