@@ -195,7 +195,7 @@ def calculationC(cur, con):
 
 # This code consolidates each data visulation and calculation function to make the main function cleaner
 def main():
-    cur, con = set_up_database('final_project.db')
+    cur, con = set_up_database('test_final_project.db')
     answerA = calculationA(cur, con)
     answerB = calculationB(cur, con)
     answerC = calculationC(cur, con)
